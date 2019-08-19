@@ -44,7 +44,7 @@ OLEDDisplayUi ui(&display);
 void msOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
   display->setTextAlignment(TEXT_ALIGN_RIGHT);
   display->setFont(ArialMT_Plain_10);
-  display->drawString(128, 0, String(millis()));
+  display->drawString(128, 0, String(micros()));
 }
 
 void drawFrame1(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {

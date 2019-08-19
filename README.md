@@ -3,7 +3,7 @@ A little HUD for my ESP32 OLED
 
 ## Setup
 
-TODO
+Install the libraries using the guide provided [here](https://github.com/FablabTorino/AUG-Torino/wiki/Wemos-Lolin-board-(ESP32-with-128x64-SSD1306-I2C-OLED-display))
 
 ## Flashing
 
