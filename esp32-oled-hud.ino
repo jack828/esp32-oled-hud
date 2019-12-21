@@ -4,33 +4,9 @@
 #include "SSD1306Wire.h"
 #include "OLEDDisplayUi.h"
 #include "images.h"
+#include "credentials.h"
 
-/*
 WiFiMulti wifi;
-
-void setup() {
-  Serial.begin(115200);
-  delay(10);
-
-  wifi.addAP("virginmary", "Budgie090570");
-  wifi.addAP("CLOCK", "");
-
-  Serial.println("Connecting Wifi...");
-  if (wifi.run() == WL_CONNECTED) {
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-  }
-}
-
-void loop() {
-  if (wifi.run() != WL_CONNECTED) {
-    Serial.println("WiFi not connected!");
-    delay(1000);
-  }
-}
-*/
 
 SSD1306Wire display(0x3c, 5, 4);
 
@@ -152,6 +128,19 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Booted.");
 
+  wifi.addAP(WIFI_SSID_1, WIFI_PSK_1);
+  wifi.addAP(WIFI_SSID_2, WIFI_PSK_2);
+  wifi.addAP(WIFI_SSID_3, WIFI_PSK_3);
+
+  Serial.println("Connecting Wifi...");
+  if (wifi.run() == WL_CONNECTED) {
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("Not connected");
+  }
+
   initialiseUi();
 }
 
@@ -159,6 +148,9 @@ void loop() {
   int remainingTimeBudget = ui.update();
 
   if (remainingTimeBudget > 0) {
+    if (wifi.run() != WL_CONNECTED) {
+      Serial.println("WiFi not connected!");
+    }
     // You can do some work here
     // Don't do stuff if you are below your
     // time budget.
