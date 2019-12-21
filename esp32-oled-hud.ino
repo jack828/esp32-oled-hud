@@ -218,7 +218,9 @@ void setup() {
     }
 
   } else {
-    Serial.println("Not connected");
+    Serial.println("Not connected, rebooting...");
+    delay(1000);
+    ESP.restart();
   }
 
   initialiseUi();
