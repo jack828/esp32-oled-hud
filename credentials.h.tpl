@@ -4,3 +4,8 @@
 #define WIFI_PSK_2 ""
 #define WIFI_SSID_3 ""
 #define WIFI_PSK_3 ""
+
+#define READYNAS_CSRF_URI "https://NAS.IP.ADDR.HERE/admin/csrf.html"
+#define READYNAS_DBBROKER_URI "https://NAS.IP.ADDR.HERE/dbbroker"
+#define READYNAS_USERNAME "admin"
+#define READYNAS_PASSWORD "admin"
