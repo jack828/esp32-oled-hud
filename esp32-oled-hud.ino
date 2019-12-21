@@ -1,5 +1,10 @@
+#include <Wire.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
+#include "SSD1306Wire.h"
+#include "OLEDDisplayUi.h"
+#include "images.h"
+
 /*
 WiFiMulti wifi;
 
@@ -27,16 +32,6 @@ void loop() {
 }
 */
 
-#include <Wire.h>
-#include "SSD1306Wire.h"
-
-// Include the UI lib
-#include "OLEDDisplayUi.h"
-
-// Include custom images
-#include "images.h"
-
-// Initialize the OLED display using Wire library
 SSD1306Wire display(0x3c, 5, 4);
 
 OLEDDisplayUi ui(&display);
