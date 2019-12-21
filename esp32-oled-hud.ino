@@ -1,12 +1,15 @@
 #include <Wire.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
+#include <HTTPClient.h>
 #include "SSD1306Wire.h"
 #include "OLEDDisplayUi.h"
 #include "images.h"
 #include "credentials.h"
 
 WiFiMulti wifi;
+
+HTTPClient http;
 
 SSD1306Wire display(0x3c, 5, 4);
 
@@ -124,6 +127,77 @@ void initialiseUi () {
   display.flipScreenVertically();
 }
 
+String csrfToken = "";
+
+boolean getCsrfToken () {
+  Serial.println("[HTTP] GET csrf token");
+
+  http.begin(READYNAS_CSRF_URI);
+  http.setAuthorization(READYNAS_USERNAME, READYNAS_PASSWORD);
+  int httpCode = http.GET();
+
+  if (httpCode > 0) {
+    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+
+    if (httpCode == HTTP_CODE_OK) {
+      String payload = http.getString();
+      Serial.println(payload);
+      int start = payload.indexOf("\"csrfpId\", \"") + 12;
+      int end = payload.indexOf("\");", start);
+      csrfToken = payload.substring(start, end);
+      Serial.print("[HTTP] Got csrf token: ");
+      Serial.println(csrfToken);
+      return true;
+    } else {
+      Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    }
+  } else {
+    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+  }
+  http.end();
+  return false;
+}
+
+double doubleFromXMLTag (String xml, String tag) {
+  // TODO not found case
+  String value = "";
+  int start = xml.indexOf("<" + tag + ">") + tag.length() + 2;
+  int end = xml.indexOf("</" + tag + ">", start);
+  value = xml.substring(start, end);
+  return value.toDouble();
+}
+
+void getDeviceStats() {
+  Serial.println("[HTTP] GET device stats");
+
+  http.begin(READYNAS_DBBROKER_URI);
+  http.setAuthorization(READYNAS_USERNAME, READYNAS_PASSWORD);
+  http.addHeader("csrfpid", csrfToken);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+  int httpCode = http.POST("<?xml version=\"1.0\" encoding=\"UTF-8\"?><xs:nml xmlns:xs=\"http://www.netgear.com/protocol/transaction/NMLSchema-0.9\" xmlns=\"urn:netgear:nas:readynasd\" src=\"dpv_1576963606000\" dst=\"nas\"><xs:transaction id=\"njl_id_465\"><xs:get id=\"njl_id_464\" resource-id=\"Volumes\" resource-type=\"Volume_Collection\"/></xs:transaction></xs:nml>");
+
+  if (httpCode > 0) {
+    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+
+    if (httpCode == HTTP_CODE_OK) {
+      String payload = http.getString();
+      Serial.println(payload);
+      double capacity = doubleFromXMLTag(payload, "Capacity");
+      double available = doubleFromXMLTag(payload, "Available");
+      Serial.println(capacity);
+      Serial.println(capacity / 1024 / 1024 / 1024); // TB
+      Serial.println(available);
+      Serial.println(available / 1024 / 1024 / 1024); // TB
+    } else {
+      Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    }
+  } else {
+    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+  }
+  http.end();
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.println("Booted.");
@@ -137,6 +211,12 @@ void setup() {
     Serial.println("WiFi connected");
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
+
+    // Authenticate with ReadyNAS & get device stats
+    if (getCsrfToken()) {
+      getDeviceStats();
+    }
+
   } else {
     Serial.println("Not connected");
   }
