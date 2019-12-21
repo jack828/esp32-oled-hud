@@ -16,6 +16,11 @@ SSD1306Wire display(0x3c, 5, 4);
 
 OLEDDisplayUi ui(&display);
 
+String capacity = "";
+String available = "";
+String used = "";
+String percentFree = "";
+
 void msOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
   display->setTextAlignment(TEXT_ALIGN_RIGHT);
   display->setFont(Monospaced_plain_10);
@@ -40,6 +45,10 @@ void drawFrame2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
   state->userData = (void *) "Storage";
   display->setTextAlignment(TEXT_ALIGN_LEFT);
   display->setFont(Monospaced_plain_10);
+  display->drawString(0 + x, 10 + y, "Capacity: " + capacity);
+  display->drawString(0 + x, 20 + y, "Free:     " + available);
+  display->drawString(0 + x, 30 + y, "Used:     " + used);
+  display->drawString(0 + x, 40 + y, "% Free:   " + percentFree);
 }
 
 void drawFrame3(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
@@ -116,7 +125,7 @@ void initialiseUi () {
   // Initialising the UI will init the display too.
   ui.init();
 
-  display.flipScreenVertically();
+  /* display.flipScreenVertically(); */
 }
 
 String csrfToken = "";
@@ -159,6 +168,17 @@ double doubleFromXMLTag (String xml, String tag) {
   return value.toDouble();
 }
 
+String formatBytes(double bytes) {
+  String output = "";
+  double gigabytes = bytes / 1024 / 1024;
+  if (gigabytes > 1024) {
+    output = String(gigabytes / 1024, 2) + " TB";
+  } else {
+    output = String(gigabytes, 2) + " GB";
+  }
+  return output;
+}
+
 void getDeviceStats() {
   Serial.println("[HTTP] GET device stats");
 
@@ -175,12 +195,20 @@ void getDeviceStats() {
     if (httpCode == HTTP_CODE_OK) {
       String payload = http.getString();
       Serial.println(payload);
-      double capacity = doubleFromXMLTag(payload, "Capacity");
-      double available = doubleFromXMLTag(payload, "Available");
+      double capacityBytes = doubleFromXMLTag(payload, "Capacity");
+      double availableBytes = doubleFromXMLTag(payload, "Available");
+      double usedBytes = capacityBytes - availableBytes;
+
+      capacity = formatBytes(capacityBytes);
+      available = formatBytes(availableBytes);
+      used = formatBytes(usedBytes);
+
+      percentFree = String((availableBytes / capacityBytes) * 100, 2) + " %";
+
       Serial.println(capacity);
-      Serial.println(capacity / 1024 / 1024 / 1024); // TB
       Serial.println(available);
-      Serial.println(available / 1024 / 1024 / 1024); // TB
+      Serial.println(used);
+      Serial.println(percentFree);
     } else {
       Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
     }
