@@ -6,6 +6,7 @@
 #include "OLEDDisplayUi.h"
 #include "images.h"
 #include "credentials.h"
+#include "font.h"
 
 WiFiMulti wifi;
 
@@ -17,13 +18,13 @@ OLEDDisplayUi ui(&display);
 
 void msOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
   display->setTextAlignment(TEXT_ALIGN_RIGHT);
-  display->setFont(ArialMT_Plain_10);
+  display->setFont(Monospaced_plain_10);
   display->drawString(128, 0, String(millis()));
 }
 
 void titleOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
   display->setTextAlignment(TEXT_ALIGN_LEFT);
-  display->setFont(ArialMT_Plain_10);
+  display->setFont(Monospaced_plain_10);
   display->drawString(0, 0, (char*)state->userData);
 }
 
@@ -36,24 +37,15 @@ void drawFrame1(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
 }
 
 void drawFrame2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
-  state->userData = (void *) "Text";
-  // Demonstrates the 3 included default sizes. The fonts come from SSD1306Fonts.h file
-  // Besides the default fonts there will be a program to convert TrueType fonts into this format
+  state->userData = (void *) "Storage";
   display->setTextAlignment(TEXT_ALIGN_LEFT);
-  display->setFont(ArialMT_Plain_10);
-  display->drawString(0 + x, 10 + y, "Arial 10");
-
-  display->setFont(ArialMT_Plain_16);
-  display->drawString(0 + x, 20 + y, "Arial 16");
-
-  display->setFont(ArialMT_Plain_24);
-  display->drawString(0 + x, 34 + y, "Arial 24");
+  display->setFont(Monospaced_plain_10);
 }
 
 void drawFrame3(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
   state->userData = (void *) "Alignment";
   // Text alignment demo
-  display->setFont(ArialMT_Plain_10);
+  display->setFont(Monospaced_plain_10);
 
   // The coordinates define the left starting point of the text
   display->setTextAlignment(TEXT_ALIGN_LEFT);
@@ -74,7 +66,7 @@ void drawFrame4(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
   // with the third parameter you can define the width after which words will be wrapped.
   // Currently only spaces and "-" are allowed for wrapping
   display->setTextAlignment(TEXT_ALIGN_LEFT);
-  display->setFont(ArialMT_Plain_10);
+  display->setFont(Monospaced_plain_10);
   display->drawStringMaxWidth(0 + x, 10 + y, 128, "Lorem ipsum\n dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore.");
 }
 
