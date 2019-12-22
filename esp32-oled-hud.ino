@@ -3,33 +3,21 @@
 #include <WiFiMulti.h>
 #include <WiFiUdp.h>
 #include <NTPClient.h>
-#include <HTTPClient.h>
 #include "SSD1306Wire.h"
 #include "OLEDDisplayUi.h"
 #include "images.h"
 #include "credentials.h"
+#include "definitions.h"
 #include "font.h"
+#include "utils.h"
+#include "network.h"
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "uk.pool.ntp.org", 0, 1000);
 WiFiMulti wifi;
-HTTPClient http;
 
 SSD1306Wire display(0x3c, 5, 4);
 OLEDDisplayUi ui(&display);
-
-String csrfToken = "";
-
-// Device
-String model = "";
-String firmwareVersion = "";
-String uptime = "";
-
-// Storage
-String capacity = "";
-String available = "";
-String used = "";
-String percentFree = "";
 
 void timeOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
   display->setTextAlignment(TEXT_ALIGN_RIGHT);
@@ -126,149 +114,6 @@ int FRAME_COUNT = sizeof(frames) / sizeof(FrameCallback);
 OverlayCallback overlays[] = { timeOverlay, titleOverlay };
 int OVERLAY_COUNT = sizeof(overlays) / sizeof(OverlayCallback);
 
-boolean getCsrfToken () {
-  Serial.println("[HTTP] GET csrf token");
-
-  http.begin(READYNAS_CSRF_URI);
-  http.setAuthorization(READYNAS_USERNAME, READYNAS_PASSWORD);
-  int httpCode = http.GET();
-
-  if (httpCode > 0) {
-    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-
-    if (httpCode == HTTP_CODE_OK) {
-      String payload = http.getString();
-      Serial.println(payload);
-      int start = payload.indexOf("\"csrfpId\", \"") + 12;
-      int end = payload.indexOf("\");", start);
-      csrfToken = payload.substring(start, end);
-      Serial.print("[HTTP] Got csrf token: ");
-      Serial.println(csrfToken);
-      return true;
-    } else {
-      Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-    }
-  } else {
-    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-  }
-  http.end();
-  return false;
-}
-
-String stringFromXMLTag (String xml, String tag) {
-  // TODO not found case
-  String value = "";
-  int start = xml.indexOf("<" + tag + ">") + tag.length() + 2;
-  int end = xml.indexOf("</" + tag + ">", start);
-  value = xml.substring(start, end);
-  return value;
-}
-
-double doubleFromXMLTag (String xml, String tag) {
-  // TODO not found case
-  String value = stringFromXMLTag(xml, tag);
-  return value.toDouble();
-}
-
-long longFromXMLTag (String xml, String tag) {
-  // TODO not found case
-  String value = stringFromXMLTag(xml, tag);
-  return value.toInt();
-}
-
-String formatBytes(double bytes) {
-  String output = "";
-  double gigabytes = bytes / 1024 / 1024;
-  if (gigabytes > 1024) {
-    output = String(gigabytes / 1024, 2) + " TB";
-  } else {
-    output = String(gigabytes, 2) + " GB";
-  }
-  return output;
-}
-
-String formatUptime(long uptime) {
-  long dayInSeconds = 24 * 60 * 60;
-  long hourInSeconds = 60 * 60;
-  long minuteInSeconds = 60; // Obviously
-  int days = floor(uptime / dayInSeconds);
-  int hours = floor((uptime % dayInSeconds) / hourInSeconds);
-  int minutes = floor((uptime % hourInSeconds) / minuteInSeconds);
-  return String(days) + "d " + String(hours) + "h " + String(minutes) + "m";
-}
-
-void getStorageStats() {
-  Serial.println("[HTTP] GET storage stats");
-
-  http.begin(READYNAS_DBBROKER_URI);
-  http.setTimeout(10000);
-  http.setAuthorization(READYNAS_USERNAME, READYNAS_PASSWORD);
-  http.addHeader("csrfpid", csrfToken);
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-  int httpCode = http.POST("<?xml version=\"1.0\" encoding=\"UTF-8\"?><xs:nml xmlns:xs=\"http://www.netgear.com/protocol/transaction/NMLSchema-0.9\" xmlns=\"urn:netgear:nas:readynasd\" src=\"dpv_1576963606000\" dst=\"nas\"><xs:transaction id=\"njl_id_465\"><xs:get id=\"njl_id_464\" resource-id=\"Volumes\" resource-type=\"Volume_Collection\"/></xs:transaction></xs:nml>");
-
-  if (httpCode > 0) {
-    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-
-    if (httpCode == HTTP_CODE_OK) {
-      String payload = http.getString();
-      Serial.println(payload);
-      double capacityBytes = doubleFromXMLTag(payload, "Capacity");
-      double availableBytes = doubleFromXMLTag(payload, "Available");
-      double usedBytes = capacityBytes - availableBytes;
-
-      capacity = formatBytes(capacityBytes);
-      available = formatBytes(availableBytes);
-      used = formatBytes(usedBytes);
-
-      percentFree = String((availableBytes / capacityBytes) * 100, 2) + " %";
-
-      Serial.println(capacity);
-      Serial.println(available);
-      Serial.println(used);
-      Serial.println(percentFree);
-    } else {
-      Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-    }
-  } else {
-    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-  }
-  http.end();
-}
-
-void getDeviceInfo() {
-  Serial.println("[HTTP] GET device info");
-
-  http.begin(READYNAS_DBBROKER_URI);
-  http.setTimeout(10000);
-  http.setAuthorization(READYNAS_USERNAME, READYNAS_PASSWORD);
-  http.addHeader("csrfpid", csrfToken);
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-  int httpCode = http.POST("<?xml version=\"1.0\" encoding=\"UTF-8\"?><xs:nml xmlns:xs=\"http://www.netgear.com/protocol/transaction/NMLSchema-0.9\" xmlns=\"urn:netgear:nas:readynasd\" src=\"dpv_1576970265000\" dst=\"nas\"><xs:transaction id=\"njl_id_29\"><xs:get id=\"njl_id_28\" resource-id=\"SystemInfo\" resource-type=\"SystemInfo\"></xs:get></xs:transaction></xs:nml>");
-
-  if (httpCode > 0) {
-    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-
-    if (httpCode == HTTP_CODE_OK) {
-      String payload = http.getString();
-      Serial.println(payload);
-      model = stringFromXMLTag(payload, "Model");
-      firmwareVersion = stringFromXMLTag(payload, "Firmware_Version");
-      long uptimeSeconds = longFromXMLTag(payload, "System_Uptime");
-
-      uptime = formatUptime(uptimeSeconds);
-
-      Serial.println(model);
-    } else {
-      Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-    }
-  } else {
-    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-  }
-  http.end();
-}
 
 void initialiseUi () {
   // The ESP is capable of rendering 60fps in 80Mhz mode
