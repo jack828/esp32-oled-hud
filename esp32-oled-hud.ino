@@ -189,6 +189,7 @@ void getStorageStats() {
   Serial.println("[HTTP] GET storage stats");
 
   http.begin(READYNAS_DBBROKER_URI);
+  http.setTimeout(10000);
   http.setAuthorization(READYNAS_USERNAME, READYNAS_PASSWORD);
   http.addHeader("csrfpid", csrfToken);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -228,6 +229,7 @@ void getDeviceInfo() {
   Serial.println("[HTTP] GET device info");
 
   http.begin(READYNAS_DBBROKER_URI);
+  http.setTimeout(10000);
   http.setAuthorization(READYNAS_USERNAME, READYNAS_PASSWORD);
   http.addHeader("csrfpid", csrfToken);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
