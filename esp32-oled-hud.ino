@@ -60,17 +60,59 @@ void drawFrame2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
   display->drawString(0 + x, 40 + y, "% Free:   " + percentFree);
 }
 
+LoadingStage loadingStages[] = {
+  {
+    .process = "Connecting to WiFi",
+    .callback = []() {
+      wifi.addAP(WIFI_SSID_1, WIFI_PSK_1);
+      wifi.addAP(WIFI_SSID_2, WIFI_PSK_2);
+      wifi.addAP(WIFI_SSID_3, WIFI_PSK_3);
+
+      Serial.println("Connecting WiFi...");
+      if (wifi.run() == WL_CONNECTED) {
+        Serial.println("WiFi connected");
+        Serial.println("IP address: ");
+        Serial.println(WiFi.localIP());
+      } else {
+        Serial.println("Not connected, rebooting...");
+        delay(1000);
+        ESP.restart();
+      }
+    }
+  },
+  {
+    .process = "Obtaining CSRF Token",
+    .callback = []() {
+      // TODO handle error
+      getCsrfToken();
+    }
+  },
+  {
+    .process = "Retrieving device info",
+    .callback = []() {
+      getDeviceInfo();
+    }
+  },
+  {
+    .process = "Retrieving storage info",
+    .callback = []() {
+      getStorageStats();
+    }
+  }
+};
+
+int LOADING_STAGES_COUNT = sizeof(loadingStages) / sizeof(LoadingStage);
 
 // This array keeps function pointers to all frames
 // frames are the single views that slide in
 FrameCallback frames[] = { drawFrame1, drawFrame2 };
 
 // how many frames are there?
-int frameCount = sizeof(frames) / sizeof(FrameCallback);
+int FRAME_COUNT = sizeof(frames) / sizeof(FrameCallback);
 
 // Overlays are statically drawn on top of a frame eg. a clock
 OverlayCallback overlays[] = { msOverlay, titleOverlay };
-int overlaysCount = sizeof(overlays) / sizeof(OverlayCallback);
+int OVERLAY_COUNT = sizeof(overlays) / sizeof(OverlayCallback);
 
 boolean getCsrfToken () {
   Serial.println("[HTTP] GET csrf token");
@@ -144,7 +186,7 @@ String formatUptime(long uptime) {
 }
 
 void getStorageStats() {
-  Serial.println("[HTTP] GET device stats");
+  Serial.println("[HTTP] GET storage stats");
 
   http.begin(READYNAS_DBBROKER_URI);
   http.setAuthorization(READYNAS_USERNAME, READYNAS_PASSWORD);
@@ -182,8 +224,8 @@ void getStorageStats() {
   http.end();
 }
 
-void getDeviceStats() {
-  Serial.println("[HTTP] GET device stats");
+void getDeviceInfo() {
+  Serial.println("[HTTP] GET device info");
 
   http.begin(READYNAS_DBBROKER_URI);
   http.setAuthorization(READYNAS_USERNAME, READYNAS_PASSWORD);
@@ -220,59 +262,30 @@ void initialiseUi () {
   // run it in 160Mhz mode or just set it to 30 fps
   ui.setTargetFPS(60);
 
-  // Customize the active and inactive symbol
   ui.setActiveSymbol(activeSymbol);
   ui.setInactiveSymbol(inactiveSymbol);
 
-  // You can change this to
-  // TOP, LEFT, BOTTOM, RIGHT
   ui.setIndicatorPosition(BOTTOM);
 
-  // Defines where the first frame is located in the bar.
   ui.setIndicatorDirection(LEFT_RIGHT);
 
-  // You can change the transition that is used
-  // SLIDE_LEFT, SLIDE_RIGHT, SLIDE_UP, SLIDE_DOWN
   ui.setFrameAnimation(SLIDE_LEFT);
 
-  // Add frames
-  ui.setFrames(frames, frameCount);
+  ui.setFrames(frames, FRAME_COUNT);
 
-  // Add overlays
-  ui.setOverlays(overlays, overlaysCount);
+  ui.setOverlays(overlays, OVERLAY_COUNT);
 
-  // Initialising the UI will init the display too.
   ui.init();
 
+  ui.runLoadingProcess(loadingStages, LOADING_STAGES_COUNT);
+
+  // If needed
   /* display.flipScreenVertically(); */
 }
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Booted.");
-
-  wifi.addAP(WIFI_SSID_1, WIFI_PSK_1);
-  wifi.addAP(WIFI_SSID_2, WIFI_PSK_2);
-  wifi.addAP(WIFI_SSID_3, WIFI_PSK_3);
-
-  Serial.println("Connecting Wifi...");
-  if (wifi.run() == WL_CONNECTED) {
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-
-    // Authenticate with ReadyNAS & get device stats
-    if (getCsrfToken()) {
-      getDeviceStats();
-      getStorageStats();
-    }
-
-  } else {
-    Serial.println("Not connected, rebooting...");
-    delay(1000);
-    ESP.restart();
-  }
-
   initialiseUi();
 }
 
