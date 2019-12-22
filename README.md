@@ -1,6 +1,10 @@
 # esp32-oled-hud
 A little HUD for my ESP32 OLED to connect to my ReadyNAS
 
+## Warning
+
+Whilst it would be nice to be able to access your ReadyNAS from outside your home network (hence the ability to support up to 3 SSID's), I really would not recommend allowing external access of the admin page of your NAS, unless you really know what you are doing.
+
 ## Setup
 
 Install the libraries using the guide provided [here](https://github.com/FablabTorino/AUG-Torino/wiki/Wemos-Lolin-board-(ESP32-with-128x64-SSD1306-I2C-OLED-display))
