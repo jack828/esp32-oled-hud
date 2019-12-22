@@ -1,6 +1,8 @@
 #include <Wire.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
 #include <HTTPClient.h>
 #include "SSD1306Wire.h"
 #include "OLEDDisplayUi.h"
@@ -8,12 +10,12 @@
 #include "credentials.h"
 #include "font.h"
 
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "uk.pool.ntp.org", 0, 1000);
 WiFiMulti wifi;
-
 HTTPClient http;
 
 SSD1306Wire display(0x3c, 5, 4);
-
 OLEDDisplayUi ui(&display);
 
 String csrfToken = "";
@@ -29,10 +31,10 @@ String available = "";
 String used = "";
 String percentFree = "";
 
-void msOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
+void timeOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
   display->setTextAlignment(TEXT_ALIGN_RIGHT);
   display->setFont(Monospaced_plain_10);
-  display->drawString(128, 0, String(millis()));
+  display->drawString(128, 0, timeClient.getFormattedTime());
 }
 
 void titleOverlay(OLEDDisplay *display, OLEDDisplayUiState* state) {
@@ -81,6 +83,16 @@ LoadingStage loadingStages[] = {
     }
   },
   {
+    .process = "Initialising NTP",
+    .callback = []() {
+      timeClient.begin();
+      while (!timeClient.update()) {
+        timeClient.forceUpdate();
+      }
+      Serial.println(timeClient.getFormattedTime());
+    }
+  },
+  {
     .process = "Obtaining CSRF Token",
     .callback = []() {
       // TODO handle error
@@ -111,7 +123,7 @@ FrameCallback frames[] = { drawFrame1, drawFrame2 };
 int FRAME_COUNT = sizeof(frames) / sizeof(FrameCallback);
 
 // Overlays are statically drawn on top of a frame eg. a clock
-OverlayCallback overlays[] = { msOverlay, titleOverlay };
+OverlayCallback overlays[] = { timeOverlay, titleOverlay };
 int OVERLAY_COUNT = sizeof(overlays) / sizeof(OverlayCallback);
 
 boolean getCsrfToken () {

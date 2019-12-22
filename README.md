@@ -5,7 +5,10 @@ A little HUD for my ESP32 OLED to connect to my ReadyNAS
 
 Install the libraries using the guide provided [here](https://github.com/FablabTorino/AUG-Torino/wiki/Wemos-Lolin-board-(ESP32-with-128x64-SSD1306-I2C-OLED-display))
 
-You'll need SSD1306 and GFX libs.
+You'll need these libraries from the Arduino library manager:
+ - SSD1306
+ - Adafruit GFX
+ - NTPClient
 
 ## Flashing
 
