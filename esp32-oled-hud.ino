@@ -16,6 +16,8 @@ SSD1306Wire display(0x3c, 5, 4);
 
 OLEDDisplayUi ui(&display);
 
+String csrfToken = "";
+
 // Device
 String model = "";
 String firmwareVersion = "";
@@ -58,84 +60,17 @@ void drawFrame2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
   display->drawString(0 + x, 40 + y, "% Free:   " + percentFree);
 }
 
-void drawFrame3(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
-  state->userData = (void *) "Alignment";
-  // Text alignment demo
-  display->setFont(Monospaced_plain_10);
-
-  // The coordinates define the left starting point of the text
-  display->setTextAlignment(TEXT_ALIGN_LEFT);
-  display->drawString(0 + x, 11 + y, "Left aligned (0,10)");
-
-  // The coordinates define the center of the text
-  display->setTextAlignment(TEXT_ALIGN_CENTER);
-  display->drawString(64 + x, 22 + y, "Center aligned (64,22)");
-
-  // The coordinates define the right end of the text
-  display->setTextAlignment(TEXT_ALIGN_RIGHT);
-  display->drawString(128 + x, 33 + y, "Right aligned (128,33)");
-}
-
-void drawFrame4(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
-  state->userData = (void *) "Long Text";
-  // Demo for drawStringMaxWidth:
-  // with the third parameter you can define the width after which words will be wrapped.
-  // Currently only spaces and "-" are allowed for wrapping
-  display->setTextAlignment(TEXT_ALIGN_LEFT);
-  display->setFont(Monospaced_plain_10);
-  display->drawStringMaxWidth(0 + x, 10 + y, 128, "Lorem ipsum\n dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore.");
-}
-
-void drawFrame5(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y) {
-  state->userData = (void *) "Empty";
-}
 
 // This array keeps function pointers to all frames
 // frames are the single views that slide in
-FrameCallback frames[] = { drawFrame1, drawFrame2, drawFrame3, drawFrame4, drawFrame5 };
+FrameCallback frames[] = { drawFrame1, drawFrame2 };
 
 // how many frames are there?
-int frameCount = 5;
+int frameCount = sizeof(frames) / sizeof(FrameCallback);
 
 // Overlays are statically drawn on top of a frame eg. a clock
 OverlayCallback overlays[] = { msOverlay, titleOverlay };
-int overlaysCount = 2;
-
-
-void initialiseUi () {
-  // The ESP is capable of rendering 60fps in 80Mhz mode
-  // but that won't give you much time for anything else
-  // run it in 160Mhz mode or just set it to 30 fps
-  ui.setTargetFPS(60);
-
-  // Customize the active and inactive symbol
-  ui.setActiveSymbol(activeSymbol);
-  ui.setInactiveSymbol(inactiveSymbol);
-
-  // You can change this to
-  // TOP, LEFT, BOTTOM, RIGHT
-  ui.setIndicatorPosition(BOTTOM);
-
-  // Defines where the first frame is located in the bar.
-  ui.setIndicatorDirection(LEFT_RIGHT);
-
-  // You can change the transition that is used
-  // SLIDE_LEFT, SLIDE_RIGHT, SLIDE_UP, SLIDE_DOWN
-  ui.setFrameAnimation(SLIDE_LEFT);
-
-  // Add frames
-  ui.setFrames(frames, frameCount);
-
-  // Add overlays
-  ui.setOverlays(overlays, overlaysCount);
-
-  // Initialising the UI will init the display too.
-  ui.init();
-
-  /* display.flipScreenVertically(); */
-}
-
-String csrfToken = "";
+int overlaysCount = sizeof(overlays) / sizeof(OverlayCallback);
 
 boolean getCsrfToken () {
   Serial.println("[HTTP] GET csrf token");
@@ -277,6 +212,39 @@ void getDeviceStats() {
     Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
   http.end();
+}
+
+void initialiseUi () {
+  // The ESP is capable of rendering 60fps in 80Mhz mode
+  // but that won't give you much time for anything else
+  // run it in 160Mhz mode or just set it to 30 fps
+  ui.setTargetFPS(60);
+
+  // Customize the active and inactive symbol
+  ui.setActiveSymbol(activeSymbol);
+  ui.setInactiveSymbol(inactiveSymbol);
+
+  // You can change this to
+  // TOP, LEFT, BOTTOM, RIGHT
+  ui.setIndicatorPosition(BOTTOM);
+
+  // Defines where the first frame is located in the bar.
+  ui.setIndicatorDirection(LEFT_RIGHT);
+
+  // You can change the transition that is used
+  // SLIDE_LEFT, SLIDE_RIGHT, SLIDE_UP, SLIDE_DOWN
+  ui.setFrameAnimation(SLIDE_LEFT);
+
+  // Add frames
+  ui.setFrames(frames, frameCount);
+
+  // Add overlays
+  ui.setOverlays(overlays, overlaysCount);
+
+  // Initialising the UI will init the display too.
+  ui.init();
+
+  /* display.flipScreenVertically(); */
 }
 
 void setup() {
